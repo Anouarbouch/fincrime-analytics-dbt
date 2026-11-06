@@ -1,0 +1,59 @@
+version: 2
+
+models:
+  - name: stg_transactions
+    description: "Normalized staging view of raw multi-currency transactions with clean type casting and boolean alerts."
+    columns:
+      - name: transaction_id
+        description: "Primary key for transactions."
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Foreign key reference to users."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_users')
+              field: user_id
+      - name: transaction_status
+        description: "Execution state of the transaction."
+        tests:
+          - accepted_values:
+              values: ['completed', 'blocked_compliance', 'refunded']
+      - name: amount_eur
+        description: "Standardized transaction amount converted to EUR."
+        tests:
+          - not_null
+
+  - name: stg_users
+    description: "Staging view of customer profiles and baseline risk classification."
+    columns:
+      - name: user_id
+        description: "Unique account identifier."
+        tests:
+          - unique
+          - not_null
+      - name: initial_risk_tier
+        description: "Compliance onboarding risk band."
+        tests:
+          - accepted_values:
+              values: ['low', 'medium', 'high', 'enhanced_due_diligence']
+
+  - name: int_user_transaction_velocity
+    description: "Intermediate modeling layer calculating windowed transaction velocity, rolling 7-day volume, and anti-structuring alerts."
+    columns:
+      - name: transaction_id
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_monthly_risk_summary
+    description: "Executive dimensional mart aggregating monthly Gross Transaction Volume (GTV), blocked transactions, and AML alert ratios by country and risk band."
+    columns:
+      - name: reporting_month
+        tests:
+          - not_null
+      - name: gross_transaction_volume_eur
+        tests:
+          - not_null
